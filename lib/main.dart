@@ -65,7 +65,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
         body: new Center(
             child: new FutureBuilder<List<Reason>>(
-          future: fetchReasons(),
+          future: fetchReasons(context),
           builder: (context, snapshot) {
             if (snapshot.hasData) {
               return new ListView.builder(
@@ -84,7 +84,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 },
               );
             } else if (snapshot.hasError) {
-              return new Text("${snapshot.error}");
+              return new Column(children: [
+                new Text("Unexpected error: \n\n${snapshot.error}\n\nTry reloading the app?")
+              ]);
             }
             return new CircularProgressIndicator();
           },
@@ -92,23 +94,36 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-Future<List<Reason>> fetchReasons() async {
+Future<List<Reason>> fetchReasons(BuildContext context) async {
   final response = await http.get(server);
 
   if (response.statusCode == 200) {
     Iterable l = json.decode(response.body);
     return l.map((model) => Reason.fromJson(model)).toList();
   } else {
-    throw Exception('Failed to load reasons');
+    throw new Exception("unexpected error code ${response.statusCode}");
   }
 }
 
 Future send(BuildContext context, String msg) async {
   final data = json.encode({"msg": msg});
-  final response = await http
-      .post(server, body: data, headers: {"Content-Type": "application/json"});
+  var response;
+  try {
+    response = await http.post(server,
+        body: data, headers: {"Content-Type": "application/json"});
+  } catch (e) {
+    Scaffold.of(context).showSnackBar(new SnackBar(
+      backgroundColor: Color.fromRGBO(255, 20, 20, 1.0),
+      content: new Text("Failed to send message"),
+    ));
+    return;
+  }
 
   if (response.statusCode != 201) {
+    Scaffold.of(context).showSnackBar(new SnackBar(
+      backgroundColor: Color.fromRGBO(255, 20, 20, 1.0),
+      content: new Text("Failed to send message"),
+    ));
     throw Exception('Failed to send');
   } else {
     Scaffold.of(context).showSnackBar(new SnackBar(
