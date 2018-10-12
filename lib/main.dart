@@ -49,23 +49,25 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  Future<List<Reason>> reasons;
+
+  fetch() {
+    setState(() {
+      reasons = fetchReasons();
+    });
+    return reasons;
+  }
+
+
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return new Scaffold(
         appBar: new AppBar(
-          // Here we take the value from the MyHomePage object that was created by
-          // the App.build method, and use it to set our appbar title.
           title: new Text(widget.title),
         ),
         body: new Center(
             child: new FutureBuilder<List<Reason>>(
-          future: fetchReasons(context),
+          future: fetch(),
           builder: (context, snapshot) {
             if (snapshot.hasData) {
               return new ListView.builder(
@@ -85,16 +87,21 @@ class _MyHomePageState extends State<MyHomePage> {
               );
             } else if (snapshot.hasError) {
               return new Column(children: [
-                new Text("Unexpected error: \n\n${snapshot.error}\n\nTry reloading the app?")
+                new Text("Unexpected error: \n\n${snapshot.error}\n\nTry reloading the app?"),
+                new RaisedButton(
+                  onPressed: () => fetch(),
+                  child: new Text('Reload', textScaleFactor: 2.0),
+                )
               ]);
             }
             return new CircularProgressIndicator();
-          },
-        )));
+          })
+        )
+    );
   }
 }
 
-Future<List<Reason>> fetchReasons(BuildContext context) async {
+Future<List<Reason>> fetchReasons() async {
   final response = await http.get(server);
 
   if (response.statusCode == 200) {
